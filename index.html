@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>bookmaker</title>
+    <!-- PWA CONFIG -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-128.png">
+
+    <!-- iOS SUPPORT -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="icon-128.png">
+    <!-- Di bagian <head> setelah library lainnya -->
+
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.0.0/build/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <style>
+
+        /* === CSS APLIKASI === */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: #f0f2f5;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 18px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .textarea-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Tombol toggle */
+        .toggle-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .toggle-btn:hover {
+            background: #2980b9;
+        }
+
+        /* Icon toggle animasi */
+        .toggle-btn .icon {
+            transition: transform 0.3s ease;
+            display: inline-block;
+        }
+
+        .toggle-btn.closed .icon {
+            transform: rotate(-90deg);
+        }
+
+        /* Textarea dalam keadaan tertutup */
+        .textarea.closed {
+            height: 0 !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        /* Pastikan textarea normal tetap seperti semula */
+        .textarea {
+            width: 100%;
+            height: 1355px;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .css-textarea {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+
+        .html-textarea {
+            width: 100%;
+            background: #fff8e1;
+            border-color: #ff9800;
+            height: 1355px;
+            font-size: 13px;
+            padding: 15px;
+        }
+        /* Untuk HTML textarea (yang oranye) */
+        .html-textarea.closed {
+            height: 0 !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            overflow: hidden;
+            margin: 0;
+            background: transparent !important;
+        }
+
+        /* Tombol toggle khusus untuk HTML textarea */
+        [data-target="htmlInput"].toggle-btn {
+            background: #ff9800;
+            /* Warna oranye */
+            border: 1px solid #f57c00;
+        }
+
+        [data-target="htmlInput"].toggle-btn:hover {
+            background: #f57c00;
+        }
+
+        [data-target="htmlInput"].toggle-btn.closed {
+            background: #ffb74d;
+        }
+
+        /* Pastikan textarea HTML punya class .textarea */
+        .html-textarea {
+            background: #fff8e1;
+            border-color: #ff9800;
+            height: 1355px;
+            /* Tambah ini agar bisa ditutup */
+            transition: all 0.3s ease;
+            overflow: auto;
+        }
+
+        button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #219653;
+        }
+
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .page-buttons {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .page-btn {
+            background: #3498db;
+            font-size: 12px;
+            padding: 8px 15px;
+        }
+
+        .page-btn:hover {
+            background: #2980b9;
+        }
+
+
+        #previewContainer {
+            margin: 0 auto;
+            height: 1355px;
+            background: #d2b48c;
+            padding: 35px;
+            border-radius: 5px;
+        }
+
+        .halaman-counter {
+            background: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+@media (max-width: 1200px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Style untuk toast/notifikasi */
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 10000;
+            font-size: 14px;
+            animation: fadeInOut 3s ease-in-out;
+        }
+
+@keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                bottom: 0;
+            }
+            10% {
+                opacity: 1;
+                bottom: 20px;
+            }
+            90% {
+                opacity: 1;
+                bottom: 20px;
+            }
+            100% {
+                opacity: 0;
+                bottom: 20px;
+            }
+        }
+
+        /* Modal untuk file upload */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 25px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
+
+        .upload-zone {
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 20px 0;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-zone:hover {
+            background: #e3f2fd;
+            border-color: #2980b9;
+        }
+
+        .upload-zone.dragover {
+            background: #bbdefb;
+            border-color: #1a73e8;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 15px;
+            background: #3498db;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .file-label:hover {
+            background: #2980b9;
+        }
+
+        .save-options {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .save-btn {
+            background: #9b59b6;
+        }
+
+        .save-btn:hover {
+            background: #8e44ad;
+        }
+
+        .load-btn {
+            background: #e67e22;
+        }
+
+        .load-btn:hover {
+            background: #d35400;
+        }
+
+        .upload-btn {
+            background: #1abc9c;
+        }
+
+        .upload-btn:hover {
+            background: #16a085;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #2c3e50;">📚 Book Maker - Multi Halaman</h1>
+
+    <!-- BUTTON SAVE/LOAD/UPLOAD -->
+    <div style="text-align: center; margin: 20px 0;">
+        <div class="button-container" style="justify-content: center;">
+            <button onclick="saveProject()" class="save-btn">
+                💾 Save Project
+            </button>
+            <button onclick="loadProject()" class="load-btn">
+                📂 Load Project
+            </button>
+            <button onclick="uploadFiles()" class="upload-btn">
+                📤 Upload CSS/HTML
+            </button>
+            <button onclick="quickPDF()" style="background: #e74c3c;">
+                ⚡ Quick PDF
+            </button>
+        </div>
+
+        <div id="projectName" style="margin-top: 10px; font-size: 14px; color: #7f8c8d;">
+            Project: <span id="currentProject">Belum disimpan</span>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- KOLOM 1: CSS BUKU -->
+        <div class="section">
+            <div class="textarea-header">
+                <h3 class="section-title">🎨 CSS Buku WAJIB MENGGUNAKAN ".buku-halaman {" agar tampil di preview</h3>
+                <button class="toggle-btn" data-target="cssInput">
+                    <span class="icon">▼</span>
+                    <span class="text">Tutup</span>
+                </button>
+            </div>
+            <textarea id="cssInput" class="css-textarea textarea">
+                /* CSS BUKU ANDA */
+                .buku-halaman {
+                width: 794px;
+                height: 1123px;
+                padding: 85px 70px;
+                background: white;
+                margin: 0 auto 20px auto;
+                font-family: 'Times New Roman', serif;
+                font-size: 18px;
+                line-height: 1.8;
+                color: #000;
+                box-sizing: border-box;
+                page-break-after: always;
+                position: relative; /* Penting untuk penempatan nomor halaman */
+                }
+
+                /* Style untuk nomor halaman biasa */
+                .page-number {
+                position: absolute;
+                bottom: 20px;
+                right: 70px;
+                color: #7f8c8d;
+                font-size: 15pt;
+                font-family: 'Times New Roman', serif;
+                }
+
+                /* Style untuk nomor halaman roman (pengantar, daftar isi) */
+                .page-number-roman {
+                position: absolute;
+                bottom: 20px;
+                right: 70px;
+                color: #7f8c8d;
+                font-size: 15pt;
+                font-family: 'Times New Roman', serif;
+                font-style: italic;
+                }
+
+                .buku-judul {
+                font-size: 36px;
+                text-align: center;
+                font-weight: bold;
+                margin-top: 150px;
+                margin-bottom: 100px;
+                color: #2c3e50;
+                }
+
+                .buku-bab {
+                font-size: 26px;
+                font-weight: bold;
+                margin: 60px 0 30px 0;
+                color: #34495e;
+                border-bottom: 2px solid #7f8c8d;
+                padding-bottom: 10px;
+                }
+
+                .buku-paragraf {
+                text-align: justify;
+                margin-bottom: 20px;
+                text-indent: 50px;
+                line-height: 1.9;
+                }
+
+                .p {
+                text-align: justify;
+                margin-bottom: 0px;
+                line-height: 1.9;
+                }
+
+                /* Style untuk halaman khusus */
+                .halaman-kosong {
+                background: #f8f9fa;
+                }
+
+                .halaman-akhir {
+                background: linear-gradient(to bottom, #fff, #f0f7ff);
+                }
+
+                .halaman-cover {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                text-align: center;
+                padding-top: 300px;
+                }
+
+                .halaman-cover .buku-judul {
+                color: white;
+                margin-top: 50px;
+                }
+
+                /* Halaman tanpa nomor (cover, judul) - sembunyikan jika ada */
+                .halaman-cover .page-number,
+                .halaman-cover .page-number-roman,
+                .buku-halaman:has(h1.buku-judul) .page-number,
+                .buku-halaman:has(h1.buku-judul) .page-number-roman {
+                display: none;
+                }
+
+            </textarea>
+        </div>
+    </div>
+    <!-- KOLOM 2: HTML KONTEN -->
+    <div class="section">
+        <div class="textarea-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h3 class="section-title">📝 HTML Konten Buku</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="pageCount" class="halaman-counter">3 halaman</span>
+                    <button class="toggle-btn" data-target="htmlInput">
+                        <span class="icon">▼</span>
+                        <span class="text">Tutup</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BUTTON TAMBAH HALAMAN -->
+        <div class="page-buttons">
+            <strong style="color: #2c3e50;">Tambah Halaman:</strong>
+            <div class="button-container">
+                <button class="page-btn" onclick="addCoverPage()">📖 Halaman Cover</button>
+                <button class="page-btn" onclick="addChapterPage()">📝 Halaman Bab Baru</button>
+                <button class="page-btn" onclick="addContentPage()">📄 Halaman Konten</button>
+                <button class="page-btn" onclick="addEmptyPage()">⬜ Halaman Kosong</button>
+                <button class="page-btn" onclick="addEndPage()">🏁 Halaman Akhir</button>
+                <button onclick="openImageCover()" class="page-btn" style="background: #9b59b6;">
+                    🖼️ Cover dari Gambar
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL GAMBAR -->
+        <div id="imageCoverModal" style="display: none; background: white; padding: 20px; border-radius: 10px; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; box-shadow: 0 0 20px rgba(0,0,0,0.3); max-width: 95%;">
+            <h3>🖼️ Pilih Gambar dari HP</h3>
+            <input type="file" id="imageFile" accept="image/*">
+
+            <div style="margin: 15px 0;">
+                <label>Tampilkan sebagai:</label><br>
+                <label><input type="radio" name="coverType" value="full" checked> Full Cover (gambar penuh)</label><br>
+                <label><input type="radio" name="coverType" value="background"> Background (dengan teks di atas)</label>
+            </div>
+
+            <div>
+                <button onclick="addImageAsCover()">✅ Pakai Gambar Ini</button>
+                <button onclick="closeModal()" style="background: #ccc; color: black;">❌ Batal</button>
+            </div>
+
+            <!-- PREVIEW -->
+            <img id="imagePreview" style="max-width: 100%; margin-top: 15px; display: none;">
+        </div>
+
+        <textarea id="htmlInput" class="html-textarea">
+            <!-- HALAMAN 1: COVER -->
+            <div class="buku-halaman halaman-cover">
+                <h1 class="buku-judul">BUKU DIGITAL SAYA</h1>
+                <p style="text-align: center; font-size: 20px; margin-top: 30px;">
+                    Penulis: Nama Anda
+                </p>
+                <p style="text-align: center; font-size: 18px;">
+                    Tahun: 2024
+                </p>
+            </div>
+
+            <!-- HALAMAN 2: JUDUL -->
+            <div class="buku-halaman">
+                <h1 class="buku-judul">BELAJAR PEMROGRAMAN WEB</h1>
+                <p style="text-align: center; font-size: 20px; margin-top: 50px;">
+                    Edisi Digital
+                </p>
+            </div>
+
+            <!-- HALAMAN PENGANTAR (ROMAN) -->
+            <div class="buku-halaman">
+                <h2 class="buku-bab">KATA PENGANTAR</h2>
+
+                <p class="buku-paragraf">
+                    Buku ini disusun untuk membantu pemula dalam mempelajari pemrograman web.
+                </p>
+
+                <!-- NOMOR HALAMAN ROMAN -->
+                <div class="page-number-roman">
+                    i
+                </div>
+            </div>
+
+            <!-- HALAMAN LAINNYA (CONTOH) -->
+            <div class="buku-halaman">
+                <h2 class="buku-bab">DAFTAR ISI</h2>
+
+                <p class="buku-paragraf">
+                    Daftar isi akan ditampilkan di sini.
+                </p>
+
+                <!-- NOMOR HALAMAN ROMAN -->
+                <div class="page-number-roman">
+                    ii
+                </div>
+            </div>
+
+            <!-- HALAMAN 3: BAB 1 -->
+            <div class="buku-halaman">
+                <h2 class="buku-bab">BAB 1: PENGENALAN HTML</h2>
+
+                <p class="buku-paragraf">
+                    HTML adalah bahasa markup standar untuk membuat halaman web.
+                    HTML menggambarkan struktur halaman web dan terdiri dari serangkaian elemen.
+                </p>
+
+                <p class="buku-paragraf">
+                    Elemen HTML memberi tahu browser cara menampilkan konten.
+                    Elemen HTML diwakili oleh tag.
+                </p>
+
+                <!-- NOMOR HALAMAN MANUAL -->
+                <div class="page-number">
+                    1
+                </div>
+            </div>
+
+            <!-- HALAMAN 4: BAB 2 -->
+            <div class="buku-halaman">
+                <h2 class="buku-bab">BAB 2: DASAR-DASAR HTML</h2>
+
+                <p class="buku-paragraf">
+                    Bab ini akan membahas struktur dasar dokumen HTML.
+                </p>
+
+                <!-- NOMOR HALAMAN MANUAL -->
+                <div class="page-number">
+                    2
+                </div>
+            </div>
+
+        </textarea>
+
+        <div style="margin-top: 15px; font-size: 12px; color: #7f8c8d;">
+            💡 <strong>Format:</strong> Setiap &lt;div class="buku-halaman"&gt; = 1 halaman PDF, tanpanya takan muncul dikertas buku maupun preview.
+        </div>
+        <div class="petunjuk-box" style="margin: 10px 0; padding: 10px; background: #7f8c8d; border: 1px solid #ffeaa7; border-radius: 5px; font-size: 14px;">
+            <strong>💡 Petunjuk:</strong>
+            <ul style="margin: 5px 0 0 0; padding-left: 20px;">
+                <li>Preview hanya menampilkan konten dalam <code>&lt;div class="buku-halaman"&gt;</code></li>
+                <li>Kalau mau lihat tampilan "halaman kertas", bungkus konten dengan:
+                    <code style="background: #f1f1f1; padding: 2px 5px; border-radius: 3px;">
+                        &lt;div class="buku-halaman"&gt;...&lt;/div&gt;
+                    </code>
+                </li>
+                <li>Tanpa itu, konten tetap tersimpan tapi tidak muncul di preview atau akan terlihat di luar kertas </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- BUTTON UTAMA -->
+<div style="text-align: center; margin: 25px 0;">
+    <button onclick="updatePreview()" style="background: #3498db; padding: 12px 25px;">
+        🔄 Update Preview
+    </button>
+    <button onclick="generatePDF()" style="background: #e74c3c; padding: 12px 25px;">
+        📥 Generate PDF (HQ)
+    </button>
+    <button onclick="countPages()" style="background: #9b59b6; padding: 12px 25px;">
+        📊 Hitung Halaman
+    </button>
+    <button onclick="printLangsung()" style="background: #f39c12; padding: 12px 25px;">
+        🖨️ Print Langsung
+    </button>
+    <button onclick="downloadPDFRingan()" style="background: #27ae60; padding: 12px 25px;">
+        📥 Download HTML untuk PDF
+    </button>
+    <!-- Di bagian BUTTON UTAMA -->
+    <button onclick="downloadDOCX()" style="background: #8e44ad; padding: 12px 25px;">
+        📝 Download DOCX
+    </button>
+</div>
+
+<!-- PREVIEW AREA -->
+<div style="background: white; padding: 20px; border-radius: 10px; max-width: 900px; margin: 20px auto;">
+    <h3 class="section-title">👁️ Preview (agar preview tampil pastikan menggunakan tag ".buku-halaman{")</h3>
+    <div id="previewContainer">
+        <p style="text-align:center; color:#7f8c8d; padding:50px;">
+            Klik "Update Preview" untuk melihat hasil dengan pagination otomatis
+        </p>
+    </div>
+</div>
+
+<!-- MODAL UNTUK UPLOAD FILE -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📤 Upload File CSS/HTML</h2>
+            <span class="close-btn" onclick="closeUploadModal()">&times;</span>
+        </div>
+
+        <div class="save-options">
+            <p>
+                <strong>Pilih metode upload:</strong>
+            </p>
+
+            <!-- OPTION 1: Upload file individual -->
+            <div style="margin: 15px 0;">
+                <h4>📄 Upload File Individual:</h4>
+                <div class="upload-zone" onclick="document.getElementById('cssUpload').click()">
+                    <p>
+                        Klik untuk upload file CSS
+                    </p>
+                    <small>Drag & drop file CSS di sini</small>
+                </div>
+                <input type="file" id="cssUpload" accept=".css,.txt" class="file-input" onchange="handleCSSUpload(event)">
+
+                <div class="upload-zone" onclick="document.getElementById('htmlUpload').click()">
+                    <p>
+                        Klik untuk upload file HTML
+                    </p>
+                    <small>Drag & drop file HTML di sini</small>
+                </div>
+                <input type="file" id="htmlUpload" accept=".html,.htm,.txt" class="file-input" onchange="handleHTMLUpload(event)">
+            </div>
+
+            <!-- OPTION 2: Upload file ZIP -->
+            <div style="margin: 15px 0; padding: 15px; border-top: 1px solid #ddd;">
+                <h4>📦 Upload File ZIP:</h4>
+                <p style="font-size: 14px; color: #666;">
+                    Upload file ZIP berisi index.html dan style.css
+                </p>
+                <label class="file-label" for="zipUpload">
+                    📁 Pilih File ZIP
+                </label>
+                <input type="file" id="zipUpload" accept=".zip" class="file-input" onchange="handleZipUpload(event)">
+            </div>
+
+            <!-- OPTION 3: Upload dari URL -->
+            <div style="margin: 15px 0; padding: 15px; border-top: 1px solid #ddd;">
+                <h4>🌐 Upload dari URL:</h4>
+                <input type="text" id="urlInput" placeholder="https://example.com/file.css"
+                style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px;">
+                <button onclick="loadFromURL()" style="width: 100%;">
+                    🔗 Load dari URL
+                </button>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="generateFromUpload()" style="background: #1abc9c; padding: 12px 30px;">
+                ⚡ Generate PDF dari Upload
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL UNTUK LOAD PROJECT -->
+<div id="loadModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📂 Load Project</h2>
+            <span class="close-btn" onclick="closeLoadModal()">&times;</span>
+        </div>
+
+        <div style="max-height: 300px; overflow-y: auto; margin: 20px 0;">
+            <div id="projectList">
+                <!-- Daftar project akan ditampilkan di sini -->
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="importProjectFile()" style="background: #3498db; margin: 5px;">
+                📤 Import dari File
+            </button>
+            <button onclick="closeLoadModal()" style="background: #95a5a6; margin: 5px;">
+                ❌ Batal
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fungsi toggle textarea
+        function setupTextareaToggle() {
+            const toggleBtns = document.querySelectorAll('.toggle-btn');
+
+            toggleBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const textarea = document.getElementById(targetId);
+                    const icon = this.querySelector('.icon');
+                    const text = this.querySelector('.text');
+
+                    // Toggle class 'closed' pada textarea
+                    textarea.classList.toggle('closed');
+
+                    // Toggle class 'closed' pada tombol
+                    this.classList.toggle('closed');
+
+                    // Ubah teks dan icon
+                    if (textarea.classList.contains('closed')) {
+                        text.textContent = 'Buka';
+                        icon.textContent = '▶'; // Panah ke kanan
+                    } else {
+                        text.textContent = 'Tutup';
+                        icon.textContent = '▼'; // Panah ke bawah
+                    }
+
+                    // Pertahankan fungsi resize jika ada
+                    if (!textarea.classList.contains('closed')) {
+                        textarea.style.height = '1355px';
+                    }
+                });
+            });
+        }
+
+        setupTextareaToggle();
+    });
+    // ============ VARIABEL GLOBAL ============
+    let selectedImage = null;
+    let currentProject = 'project_' + new Date().getTime();
+
+    // ============ FUNGSI UTILITAS ============
+    function showToast(message, duration = 3000) {
+        // Hapus toast sebelumnya jika ada
+        const existingToast = document.querySelector('.toast-message');
+        if (existingToast) existingToast.remove();
+
+        // Buat elemen toast baru
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        // Hapus toast setelah durasi
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        },
+            duration);
+    }
+
+    // ============ FUNGSI SAVE/LOAD PROJECT ============
+    function saveProject() {
+        const cssContent = document.getElementById('cssInput').value;
+        const htmlContent = document.getElementById('htmlInput').value;
+
+        // Tampilkan prompt untuk nama project
+        const projectName = prompt('Masukkan nama untuk project ini:',
+            currentProject);
+        if (!projectName) return;
+
+        currentProject = projectName;
+        document.getElementById('currentProject').textContent = projectName;
+
+        // Buat objek project
+        const project = {
+            name: projectName,
+            css: cssContent,
+            html: htmlContent,
+            timestamp: new Date().toISOString(),
+            pageCount: countHalaman()
+        };
+
+        // Simpan ke localStorage
+        localStorage.setItem('bookmaker_' + projectName, JSON.stringify(project));
+
+        // Simpan daftar project
+        let projectList = JSON.parse(localStorage.getItem('bookmaker_projects')) || [];
+        if (!projectList.includes(projectName)) {
+            projectList.push(projectName);
+            localStorage.setItem('bookmaker_projects', JSON.stringify(projectList));
+        }
+
+        // Buat file untuk download
+        const projectData = {
+            name: projectName,
+            css: cssContent,
+            html: htmlContent,
+            date: new Date().toLocaleString()
+        };
+
+        const blob = new Blob([JSON.stringify(projectData, null, 2)], {
+            type: 'application/json'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${projectName}.bookmaker.json`;
+        a.click();
+
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 100);
+
+        showToast(`✅ Project "${projectName}" disimpan!`);
+    }
+
+    function loadProject() {
+        // Ambil daftar project dari localStorage
+        const projectList = JSON.parse(localStorage.getItem('bookmaker_projects')) || [];
+
+        if (projectList.length === 0) {
+            showToast('❌ Belum ada project yang disimpan.');
+            importProjectFile();
+            return;
+        }
+
+        // Tampilkan modal dengan daftar project
+        const projectListDiv = document.getElementById('projectList');
+        projectListDiv.innerHTML = '';
+
+        projectList.forEach(projectName => {
+            const projectData = localStorage.getItem('bookmaker_' + projectName);
+            if (projectData) {
+                const project = JSON.parse(projectData);
+
+                const projectDiv = document.createElement('div');
+                projectDiv.style.cssText = `
+                padding: 15px;
+                margin: 10px 0;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                background: #f8f9fa;
+                cursor: pointer;
+                transition: all 0.3s;
+                `;
+                projectDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                <strong>${project.name}</strong>
+                <div style="font-size: 12px; color: #666;">
+                ${new Date(project.timestamp).toLocaleString()} • ${project.pageCount} halaman
+                </div>
+                </div>
+                <button onclick="event.stopPropagation(); deleteProject('${projectName}')"
+                style="background: #e74c3c; padding: 5px 10px; font-size: 12px;">
+                Hapus
+                </button>
+                </div>
+                `;
+
+                projectDiv.onclick = () => loadProjectByName(projectName);
+
+                projectListDiv.appendChild(projectDiv);
+            }
+        });
+
+        // Tampilkan modal
+        document.getElementById('loadModal').style.display = 'block';
+    }
+
+    function loadProjectByName(projectName) {
+        const projectData = localStorage.getItem('bookmaker_' + projectName);
+        if (!projectData) {
+            showToast('❌ Project tidak ditemukan.');
+            return;
+        }
+
+        const project = JSON.parse(projectData);
+        document.getElementById('cssInput').value = project.css;
+        document.getElementById('htmlInput').value = project.html;
+        currentProject = project.name;
+        document.getElementById('currentProject').textContent = project.name;
+
+        updatePreview();
+        closeLoadModal();
+        showToast(`✅ Project "${project.name}" dimuat!`);
+    }
+
+    function deleteProject(projectName) {
+        if (confirm(`Hapus project "${projectName}"?`)) {
+            localStorage.removeItem('bookmaker_' + projectName);
+
+            // Hapus dari daftar
+            let projectList = JSON.parse(localStorage.getItem('bookmaker_projects')) || [];
+            projectList = projectList.filter(name => name !== projectName);
+            localStorage.setItem('bookmaker_projects', JSON.stringify(projectList));
+
+            showToast(`🗑️ Project "${projectName}" dihapus.`);
+            loadProject(); // Refresh list
+        }
+    }
+
+    function importProjectFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,.txt';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                try {
+                    const projectData = JSON.parse(event.target.result);
+
+                    if (projectData.css && projectData.html) {
+                        document.getElementById('cssInput').value = projectData.css;
+                        document.getElementById('htmlInput').value = projectData.html;
+
+                        const projectName = projectData.name || 'imported_' + new Date().getTime();
+                        currentProject = projectName;
+                        document.getElementById('currentProject').textContent = projectName;
+
+                        // Simpan ke localStorage
+                        const project = {
+                            name: projectName,
+                            css: projectData.css,
+                            html: projectData.html,
+                            timestamp: new Date().toISOString(),
+                            pageCount: countHalaman()
+                        };
+
+                        localStorage.setItem('bookmaker_' + projectName, JSON.stringify(project));
+
+                        let projectList = JSON.parse(localStorage.getItem('bookmaker_projects')) || [];
+                        if (!projectList.includes(projectName)) {
+                            projectList.push(projectName);
+                            localStorage.setItem('bookmaker_projects', JSON.stringify(projectList));
+                        }
+
+                        updatePreview();
+                        closeLoadModal();
+                        showToast(`✅ Project "${projectName}" diimpor!`);
+                    } else {
+                        showToast('❌ Format file tidak valid.');
+                    }
+                } catch (error) {
+                    showToast('❌ Gagal membaca file.');
+                }
+            };
+
+            reader.readAsText(file);
+        };
+
+        input.click();
+    }
+
+    function closeLoadModal() {
+        document.getElementById('loadModal').style.display = 'none';
+    }
+
+    // ============ FUNGSI UPLOAD FILE CSS/HTML ============
+    function uploadFiles() {
+        document.getElementById('uploadModal').style.display = 'block';
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadModal').style.display = 'none';
+    }
+
+    function handleCSSUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('cssInput').value = e.target.result;
+            showToast(`✅ CSS "${file.name}" dimuat!`);
+        };
+        reader.readAsText(file);
+    }
+
+    function handleHTMLUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            // Ekstrak hanya konten body jika file HTML lengkap
+            const content = e.target.result;
+            let htmlContent = content;
+
+            // Coba ekstrak konten body
+            const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            if (bodyMatch) {
+                htmlContent = bodyMatch[1];
+            }
+
+            document.getElementById('htmlInput').value = htmlContent;
+            showToast(`✅ HTML "${file.name}" dimuat!`);
+        };
+        reader.readAsText(file);
+    }
+
+    function handleZipUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        showToast('⏳ Membuka file ZIP...');
+
+        // Gunasi JSZip library jika tersedia
+        if (typeof JSZip === 'undefined') {
+            // Load JSZip dynamically
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            script.onload = () => extractZip(file);
+            document.head.appendChild(script);
+        } else {
+            extractZip(file);
+        }
+    }
+
+    function extractZip(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const zip = new JSZip();
+                zip.loadAsync(e.target.result).then(function(zip) {
+                    // Cari file CSS dan HTML
+                    let cssFile = null;
+                    let htmlFile = null;
+
+                    for (const filename in zip.files) {
+                        if (filename.endsWith('.css')) {
+                            cssFile = filename;
+                        }
+                        if (filename.endsWith('.html') || filename.endsWith('.htm')) {
+                            htmlFile = filename;
+                        }
+                    }
+
+                    // Load CSS
+                    if (cssFile) {
+                        zip.file(cssFile).async('string').then(function(cssContent) {
+                            document.getElementById('cssInput').value = cssContent;
+                            showToast(`✅ CSS dari ZIP dimuat!`);
+                        });
+                    }
+
+                    // Load HTML
+                    if (htmlFile) {
+                        zip.file(htmlFile).async('string').then(function(htmlContent) {
+                            // Ekstrak konten body
+                            const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+                            if (bodyMatch) {
+                                document.getElementById('htmlInput').value = bodyMatch[1];
+                            } else {
+                                document.getElementById('htmlInput').value = htmlContent;
+                            }
+                            showToast(`✅ HTML dari ZIP dimuat!`);
+                        });
+                    }
+
+                    if (!cssFile && !htmlFile) {
+                        showToast('❌ Tidak ditemukan file CSS/HTML dalam ZIP.');
+                    }
+                });
+            } catch (error) {
+                showToast('❌ Gagal membaca file ZIP.');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function loadFromURL() {
+        const url = document.getElementById('urlInput').value.trim();
+        if (!url) {
+            showToast('❌ Masukkan URL terlebih dahulu.');
+            return;
+        }
+
+        showToast('⏳ Mengambil file dari URL...');
+
+        fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Gagal mengambil file');
+            return response.text();
+        })
+        .then(content => {
+            if (url.endsWith('.css')) {
+                document.getElementById('cssInput').value = content;
+                showToast(`✅ CSS dari URL dimuat!`);
+            } else if (url.endsWith('.html') || url.endsWith('.htm')) {
+                const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+                if (bodyMatch) {
+                    document.getElementById('htmlInput').value = bodyMatch[1];
+                } else {
+                    document.getElementById('htmlInput').value = content;
+                }
+                showToast(`✅ HTML dari URL dimuat!`);
+            } else {
+                // Coba deteksi tipe konten
+                if (content.includes('<!DOCTYPE') || content.includes('<html')) {
+                    const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+                    if (bodyMatch) {
+                        document.getElementById('htmlInput').value = bodyMatch[1];
+                        showToast(`✅ HTML dari URL dimuat!`);
+                    }
+                } else if (content.includes('{') && content.includes(':')) {
+                    document.getElementById('cssInput').value = content;
+                    showToast(`✅ CSS dari URL dimuat!`);
+                } else {
+                    document.getElementById('htmlInput').value = content;
+                    showToast(`✅ Konten dari URL dimuat!`);
+                }
+            }
+        })
+        .catch(error => {
+            showToast('❌ Gagal mengambil dari URL: ' + error.message);
+        });
+    }
+
+    function generateFromUpload() {
+        updatePreview();
+        setTimeout(() => {
+            generatePDF();
+            closeUploadModal();
+        },
+            1000);
+    }
+
+    function quickPDF() {
+        // Cek apakah ada konten
+        const css = document.getElementById('cssInput').value;
+        const html = document.getElementById('htmlInput').value;
+
+        if (!html.trim() || html === '<!DOCTYPE html>' || html === '<html>') {
+            showToast('❌ Tidak ada konten untuk dijadikan PDF.');
+            uploadFiles();
+            return;
+        }
+
+        // Generate PDF langsung
+        generatePDF();
+    }
+
+
+    // ============ MODAL GAMBAR ============
+    function openImageCover() {
+        document.getElementById('imageCoverModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('imageCoverModal').style.display = 'none';
+        selectedImage = null;
+        document.getElementById('imagePreview').style.display = 'none';
+        document.getElementById('imageFile').value = '';
+    }
+
+    // Preview gambar
+    document.getElementById('imageFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            selectedImage = event.target.result;
+            document.getElementById('imagePreview').src = selectedImage;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function addImageAsCover() {
+        if (!selectedImage) {
+            alert('Pilih gambar dulu!');
+            return;
+        }
+
+        const coverType = document.querySelector('input[name="coverType"]:checked').value;
+
+        // Dapat ukuran halaman dari CSS
+        const css = document.getElementById('cssInput').value;
+        const widthMatch = css.match(/\.buku-halaman\s*{[^}]*width:\s*(\d+)px/);
+        const heightMatch = css.match(/\.buku-halaman\s*{[^}]*height:\s*(\d+)px/);
+
+        const pageWidth = widthMatch ? parseInt(widthMatch[1]): 794;
+        const pageHeight = heightMatch ? parseInt(heightMatch[1]): 1123;
+
+        let coverHTML = '';
+
+        if (coverType === 'full') {
+            // GAMBAR PENUH (tanpa teks)
+            coverHTML = `
+            <!-- COVER GAMBAR PENUH -->
+            <div class="buku-halaman" style="padding: 0; background: none; overflow: hidden;">
+            <img src="${selectedImage}"
+            style="width: ${pageWidth}px;
+            height: ${pageHeight}px;
+            object-fit: cover;
+            display: block;">
+            </div>
+            `;
+        } else {
+            // BACKGROUND DENGAN TEKS DI ATAS
+            coverHTML = `
+            <!-- COVER DENGAN BACKGROUND GAMBAR -->
+            <div class="buku-halaman" style="padding: 0; background: none; position: relative; overflow: hidden;">
+            <div style="
+            position: absolute;
+            top: 0; left: 0;
+            width: ${pageWidth}px;
+            height: ${pageHeight}px;
+            background-image: url('${selectedImage}');
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.8);
+            "></div>
+
+            <!-- TEKS DI ATAS GAMBAR -->
+            <div style="
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 40px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.7);
+            ">
+            <h1 style="font-size: 42px; margin-bottom: 20px; font-weight: bold;">
+            JUDUL BUKU ANDA
+            </h1>
+            <p style="font-size: 22px; margin-bottom: 10px;">
+            Penulis: Nama Anda
+            </p>
+            <p style="font-size: 18px;">
+            Tahun: 2024
+            </p>
+            </div>
+            </div>
+            `;
+        }
+
+        // Tambah ke textarea
+        const textarea = document.getElementById('htmlInput');
+        textarea.value = coverHTML + '\n\n' + textarea.value;
+
+        // Update preview
+        updatePreview();
+        closeModal();
+
+        showToast('✅ Cover gambar ditambahkan! Edit teks judul sesuai kebutuhan.');
+    }
+
+    // ============ FUNGSI PREVIEW ============
+    function updatePreview() {
+        const css = document.getElementById('cssInput').value;
+        const html = document.getElementById('htmlInput').value;
+
+        const previewContainer = document.getElementById('previewContainer');
+        previewContainer.innerHTML = '';
+
+        const iframe = document.createElement('iframe');
+        iframe.style.width = '831px';
+        iframe.style.height = '1344px';
+        iframe.style.border = '1px solid #ddd';
+        iframe.style.background = 'white';
+
+        const iframeDoc = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <style>
+        ${css}
+        body { margin: 0; padding: 0; background: #f0f0f0; }
+
+
+        @media screen {
+        .buku-halaman {
+        box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        }
+        @media print {
+        .buku-halaman {
+        page-break-after: always !important;
+        break-after: page !important;
+        }
+        }
+        </style>
+        </head>
+        <body>
+        ${html}
+        </body>
+        </html>
+        `;
+
+        previewContainer.appendChild(iframe);
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(iframeDoc);
+        iframe.contentDocument.close();
+
+        countPages();
+        showToast('🔄 Preview diperbarui!');
+    }
+
+    // ============ FUNGSI HALAMAN ============
+    function countHalaman() {
+        const html = document.getElementById('htmlInput').value;
+        const regex = /class="buku-halaman"/g;
+        const matches = html.match(regex);
+        return matches ? matches.length: 0;
+    }
+
+    function countPages() {
+        const total = countHalaman();
+        document.getElementById('pageCount').textContent = `${total} halaman`;
+        return total;
+    }
+
+    function insertToTextarea(content) {
+        const textarea = document.getElementById('htmlInput');
+        const currentValue = textarea.value;
+        textarea.value = currentValue + '\n' + content;
+        updatePreview();
+    }
+
+    // Fungsi tambah halaman
+    function addCoverPage() {
+        const newPage = `
+        <!-- HALAMAN COVER BARU -->
+        <div class="buku-halaman halaman-cover">
+        <h1 class="buku-judul">JUDUL BUKU BARU</h1>
+        <p style="text-align: center; font-size: 20px; margin-top: 30px;">Penulis: Nama Anda</p>
+        <p style="text-align: center; font-size: 18px;">Penerbit: Penerbit Anda</p>
+        <p style="text-align: center; font-size: 16px; margin-top: 100px;">Edisi Pertama</p>
+        </div>
+        `;
+        insertToTextarea(newPage);
+    }
+
+    function addChapterPage() {
+        const chapterNum = countHalaman() - 1;
+        const newPage = `
+        <!-- HALAMAN BAB BARU -->
+        <div class="buku-halaman">
+        <h2 class="buku-bab">BAB ${chapterNum}: JUDUL BAB BARU</h2>
+
+        <p class="buku-paragraf">
+        Isi bab baru dimulai di sini. Anda dapat menulis konten untuk bab ini.
+        Mulailah dengan paragraf pengantar yang menjelaskan topik bab.
+        </p>
+
+        <p class="buku-paragraf">
+        Lanjutkan dengan paragraf kedua yang mengembangkan ide-ide utama.
+        Gunakan class "buku-paragraf" untuk setiap paragraf baru.
+        </p>
+        </div>
+        `;
+        insertToTextarea(newPage);
+    }
+
+    function addContentPage() {
+        const newPage = `
+        <!-- HALAMAN KONTEN BARU -->
+        <div class="buku-halaman">
+        <p class="buku-paragraf">
+        Halaman ini berisi kelanjutan dari bab sebelumnya.
+        Anda dapat menambahkan konten tambahan di sini.
+        </p>
+
+        <p class="buku-paragraf">
+        Tambahkan paragraf demi paragraf sampai halaman terisi.
+        Jika konten melebihi satu halaman, tambahkan halaman baru lagi.
+        </p>
+
+        <p class="buku-paragraf">
+        Ingat: Setiap halaman harus memiliki class "buku-halaman".
+        CSS akan mengatur ukuran dan margin secara otomatis.
+        </p>
+        </div>
+        `;
+        insertToTextarea(newPage);
+    }
+
+    function addEmptyPage() {
+        const newPage = `
+        <!-- HALAMAN KOSONG (untuk catatan atau gambar) -->
+        <div class="buku-halaman halaman-kosong">
+        <div style="text-align: center; margin-top: 300px; color: #7f8c8d;">
+        <h3>Halaman Kosong</h3>
+        <p>Gunakan halaman ini untuk catatan, gambar, atau diagram.</p>
+        </div>
+        </div>
+        `;
+        insertToTextarea(newPage);
+    }
+
+    function addEndPage() {
+        const newPage = `
+        <!-- HALAMAN AKHIR -->
+        <div class="buku-halaman halaman-akhir">
+        <div style="text-align: center; margin-top: 300px;">
+        <h2 style="color: #2c3e50;">--- TAMAT ---</h2>
+        <p style="font-size: 18px; margin-top: 50px;">Terima kasih telah membaca</p>
+        <p style="font-size: 16px; color: #7f8c8d; margin-top: 100px;">
+        Buku ini dibuat dengan Book Maker Digital
+        </p>
+        </div>
+        </div>
+        `;
+        insertToTextarea(newPage);
+    }
+
+    // ============ FUNGSI PDF ============
+    function getBookSizeFromCSS() {
+        // Cari elemen pertama dengan class .buku-halaman
+        const samplePage = document.querySelector('.buku-halaman');
+        if (!samplePage) return {
+            width: 210,
+            height: 297
+        }; // default A4
+
+        const style = window.getComputedStyle(samplePage);
+        const widthPx = parseFloat(style.width);
+        const heightPx = parseFloat(style.height);
+
+        // Konversi px ke mm (1px = 0.264583mm)
+        const widthMm = widthPx * 0.264583;
+        const heightMm = heightPx * 0.264583;
+
+        return {
+            width: widthMm,
+            height: heightMm
+        };
+    }
+
+    function generatePDF() {
+        const css = document.getElementById('cssInput').value;
+        const html = document.getElementById('htmlInput').value;
+
+        const fullHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <style>${css} body { margin: 0; padding: 0; }</style>
+        </head>
+        <body>${html}</body>
+        </html>
+        `;
+
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = fullHTML;
+        document.body.appendChild(tempContainer);
+
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Membuat PDF...';
+        btn.disabled = true;
+
+        // Dapatkan ukuran dari CSS
+        const bookSize = getBookSizeFromCSS();
+
+        const samplePage = tempContainer.querySelector('.buku-halaman');
+        const style = window.getComputedStyle(samplePage);
+        const paperWidthPx = parseFloat(style.width);
+        const paperHeightPx = parseFloat(style.height);
+
+        const pdf = new jspdf.jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: [bookSize.width, bookSize.height]
+        });
+
+        const halamanElements = tempContainer.querySelectorAll('.buku-halaman');
+
+        function convertHalaman(index) {
+            if (index >= halamanElements.length) {
+                const fileName = `Buku_${halamanElements.length}_halaman_${new Date().getTime()}.pdf`;
+                pdf.save(fileName);
+                document.body.removeChild(tempContainer);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                showToast(`✅ PDF siap! ${halamanElements.length} halaman.`);
+                return;
+            }
+
+            const halaman = halamanElements[index];
+            btn.innerHTML = `⏳ Halaman ${index + 1}/${halamanElements.length}`;
+
+            html2canvas(halaman, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                width: paperWidthPx,
+                height: paperHeightPx,
+                windowWidth: paperWidthPx,
+                windowHeight: paperHeightPx
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                if (index > 0) pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, 0, bookSize.width, bookSize.height);
+                setTimeout(() => convertHalaman(index + 1), 100);
+            }).catch(error => {
+                console.error('Error generating PDF:', error);
+                showToast('❌ Error membuat PDF. Coba lagi.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                document.body.removeChild(tempContainer);
+            });
+        }
+
+        convertHalaman(0);
+    }
+    // ============ DOWNLOAD DOCX (Mengikuti Pattern yang ada) ============
+    function downloadDOCX() {
+        const css = document.getElementById('cssInput').value;
+        const html = document.getElementById('htmlInput').value;
+        const totalPages = countHalaman();
+
+        // Tampilkan loading SAMA seperti fungsi lainnya
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Membuat DOCX...';
+        btn.disabled = true;
+
+        showToast('⏳ Membuat file DOCX...');
+
+        // Buat HTML lengkap SAMA PERSIS seperti generatePDF()
+        const fullHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <style>${css}</style>
+        <style>
+        body { margin: 0; padding: 0; }
+        .buku-halaman {
+        page-break-after: always;
+        }
+        </style>
+        </head>
+        <body>${html}</body>
+        </html>`;
+
+        // Download SAMA seperti downloadPDFRingan()
+        const blob = new Blob([fullHTML],
+            {
+                type: 'application/msword'
+            });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Buku_${totalPages}_halaman.doc`;
+        document.body.appendChild(a);
+        a.click();
+
+        // Bersihkan SAMA seperti fungsi lainnya
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            showToast(`✅ File DOC siap! ${totalPages} halaman.`);
+        },
+            100);
+    }
+
+    // ============ PRINT LANGSUNG ============
+    function printLangsung() {
+        // Update preview dulu
+        updatePreview();
+
+        const iframe = document.querySelector('#previewContainer iframe');
+        if (!iframe || !iframe.contentWindow) {
+            showToast('❌ Preview belum siap. Klik "Update Preview" dulu.');
+            return;
+        }
+
+        // Inject CSS print ke iframe - DIPERBAIKI
+        const printCSS = `
+        <style>
+        @media print {
+        @page {
+        size: auto;
+        margin: inherit !important;
+        }
+        * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        }
+        body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        /* Background diatur transparan agar warna asli muncul */
+        background: transparent !important;
+        }
+
+        }
+        </style>
+        `;
+
+        const iframeDoc = iframe.contentDocument;
+        if (iframeDoc.head) {
+            iframeDoc.head.insertAdjacentHTML('beforeend', printCSS);
+        }
+
+        // Tunggu sedikit lalu print
+        setTimeout(() => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            showToast('🖨️ Buka dialog print. Pastikan "Background graphics" aktif.');
+        }, 500);
+    }
+
+    // ============ DOWNLOAD PDF RINGAN ============
+    function downloadPDFRingan() {
+        const cssBuku = document.getElementById('cssInput').value;
+        const htmlBuku = document.getElementById('htmlInput').value;
+
+        // Buat HTML lengkap untuk buku
+        const bukuHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <title>Buku Digital</title>
+        <style>
+        ${cssBuku}
+
+        /* Print styles - SANGAT PENTING untuk PDF */
+        @media print {
+        @page {
+        size: auto;
+        margin: 0;
+        }
+
+        body {
+        margin: 0;
+        padding: 0;
+        background: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        }
+
+        .buku-halaman {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 85px 70px !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        }
+        }
+        /* Base styles */
+        body {
+        font-family: 'Times New Roman', serif;
+        margin: 0;
+        }
+        </style>
+        </head>
+        <body>
+        ${htmlBuku}
+        </body>
+        </html>`;
+
+        // Buat blob dari HTML
+        const blob = new Blob([bukuHTML], {
+            type: 'text/html;charset=utf-8'
+        });
+
+        // Buat URL untuk blob
+        const url = URL.createObjectURL(blob);
+
+        // Buat elemen link untuk download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `buku_digital_${new Date().getTime()}.html`;
+        link.style.display = 'none';
+
+        // Tambahkan ke body dan klik
+        document.body.appendChild(link);
+        link.click();
+
+        // Bersihkan
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 100);
+
+        // Tampilkan notifikasi
+        showToast('📥 File HTML sedang didownload! Buka file dan cetak ke PDF.');
+
+        return false;
+    }
+
+    // ============ INISIALISASI ============
+    setTimeout(updatePreview, 500);
+
+    // Setup drag and drop untuk upload zone
+    document.querySelectorAll('.upload-zone').forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('dragover');
+        });
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                // Simulasi upload file
+                if (zone.previousElementSibling &&
+                    zone.previousElementSibling.classList.contains('upload-zone')) {
+                    // Ini untuk CSS
+                    handleCSSUpload({
+                        target: {
+                            files: [files[0]]
+                        }
+                    });
+                } else {
+                    // Ini untuk HTML
+                    handleHTMLUpload({
+                        target: {
+                            files: [files[0]]
+                        }
+                    });
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>
